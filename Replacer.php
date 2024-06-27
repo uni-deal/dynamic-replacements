@@ -3,6 +3,7 @@
 namespace UniDeal\DynamicReplacements;
 
 use DateTime;
+use NumberFormatter;
 
 class Replacer
 {
@@ -106,6 +107,16 @@ class Replacer
             },
             'capitalize' => function (string $initial, ?array $args = null) {
                 return ucfirst(mb_strtolower($initial));
+            },
+            'currency'   => function (string $initial, ?array $args = null) {
+                $locale = $args[0] ?? 'en_US';
+                $currency = $args[1] ?? 'USD';
+                try {
+                    $fmt = new NumberFormatter($locale, NumberFormatter::CURRENCY);
+                    return $fmt->formatCurrency((float)$initial, $currency);
+                } catch (\Throwable $e) {
+                    return $initial;
+                }
             },
         ];
     }
