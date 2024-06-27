@@ -9,7 +9,8 @@
   },
   "require": {
     "php": ">=7.4",
-    "ext-mbstring": "*"
+    "ext-mbstring": "*",
+    "ext-intl": "*"
   },
   "minimum-stability": "dev",
   "prefer-stable": true
