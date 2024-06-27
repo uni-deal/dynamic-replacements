@@ -2,9 +2,17 @@
 
 namespace UniDeal\DynamicReplacements;
 
+use DateTime;
+
 class Replacer
 {
-    protected const GROUP_REGEX = "/\{\{([^:}]+)(?::([^}]+))?\}\}/";
+    protected const GROUP_REGEX = '/\{\{\s*([^:|}\s]+)\s*(?::\s*(?:"?([^"}]*)"?|[^|}\s]+))?\s*(?:\|\s*([^:}\s]+)\s*(?::\s*(?:"?([^"]*)"?|[^}\s]+))?)?\s*\}\}/';
+
+
+    /**
+     * @var array<string,callable>
+     */
+    protected static array $processors = [];
 
     public static function replaceAll(array $initials, array $replacements): array
     {
@@ -20,21 +28,33 @@ class Replacer
 
         $replacedVariables = array_map(function (array $match) use (&$replacements) {
             $raw = $match[0];
-            $name = $match[1];
-            $arg = ($match[2] ?? null) ? explode(',', $match[2]) : null;
+            $name = trim($match[1]);
+            $args = ($match[2] ?? null) ? explode(',', trim($match[2])) : null;
+
+            $processorName = ($match[3] ?? null) ? trim($match[3]) : null;
+            $processorArgs = ($match[4] ?? null) ? explode(',', trim($match[4])) : null;
 
             if (!array_key_exists($name, $replacements)) {
                 return ['initial' => $raw, 'replace' => ''];
             }
 
+            $replace = '';
             if (is_string($replacements[$name])) {
-                return ['initial' => $raw, 'replace' => $replacements[$name]];
+                $replace = $replacements[$name];
             }
 
-            if (!is_callable($replacements[$name])) {
-                return ['initial' => $raw, 'replace' => ''];
+            if (is_callable($replacements[$name])) {
+                $replace = $replacements[$name]($args);
             }
-            return ['initial' => $raw, 'replace' => $replacements[$name]($arg)];
+
+
+            if (!empty($processorName) && !empty($replace)) {
+                if ($processor = static::getProcessor($processorName)) {
+                    $replace = $processor($replace, $processorArgs);
+                }
+            }
+
+            return ['initial' => $raw, 'replace' => $replace];
         }, $variables);
 
         if (empty($replacedVariables)) {
@@ -46,5 +66,47 @@ class Replacer
             array_column($replacedVariables, 'replace'),
             $initial
         );
+    }
+
+
+    public static function addProcessor(string $name, callable $callback): void
+    {
+        static::$processors[$name] = $callback;
+    }
+
+    public static function getProcessors(): array
+    {
+        return array_merge(static::getNativeProcessors(), static::$processors);
+    }
+
+    /**
+     * @param string $name
+     * @return callable|null
+     */
+    public static function getProcessor(string $name): ?callable
+    {
+        return static::getProcessors()[$name] ?? null;
+    }
+
+    public static function getNativeProcessors(): array
+    {
+        return [
+            'date'       => function (string $initial, ?array $args = null) {
+                try {
+                    return (new DateTime($initial))->format($args[0] ?? 'Y-m-d H:i:s');
+                } catch (\Throwable $exception) {
+                    return $initial;
+                }
+            },
+            'upper'      => function (string $initial, ?array $args = null) {
+                return mb_strtoupper($initial);
+            },
+            'lower'      => function (string $initial, ?array $args = null) {
+                return mb_strtolower($initial);
+            },
+            'capitalize' => function (string $initial, ?array $args = null) {
+                return ucfirst(mb_strtolower($initial));
+            },
+        ];
     }
 }
