@@ -1,0 +1,15 @@
+{
+  "name": "uni-deal/dynamic-replacements",
+  "description": "Replace strings using {{variable:arg}} syntax",
+  "type": "library",
+  "autoload": {
+    "psr-4": {
+      "UniDeal\\DynamicReplacements\\": "."
+    }
+  },
+  "require": {
+    "php": ">=7.1"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
+}
