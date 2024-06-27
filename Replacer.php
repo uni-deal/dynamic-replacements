@@ -118,6 +118,16 @@ class Replacer
                     return $initial;
                 }
             },
+            'number'     => function (string $initial, ?array $args = null) {
+                $decimals = $args[0] ?? 0;
+                $decimal_separator = $args[1] ?? ',';
+                $thousands_separator = $args[1] ?? ' ';
+                try {
+                    return number_format((float)$initial, $decimals, $decimal_separator, $thousands_separator);
+                } catch (\Throwable $e) {
+                    return $initial;
+                }
+            },
         ];
     }
 }
