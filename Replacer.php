@@ -42,12 +42,9 @@ class Replacer
             $replace = '';
             if (is_string($replacements[$name])) {
                 $replace = $replacements[$name];
-            }
-
-            if (is_callable($replacements[$name])) {
+            } else if ($replacements[$name] instanceof \Closure) {
                 $replace = $replacements[$name]($args);
             }
-
 
             if (!empty($processorName) && !empty($replace)) {
                 if ($processor = static::getProcessor($processorName)) {
